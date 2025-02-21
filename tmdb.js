@@ -1,86 +1,90 @@
-       const API_URL = "https://api.themoviedb.org/3";
-        const IMAGE_URL = "https://image.tmdb.org/t/p/w200";
-        const YOUTUBE_URL = "https://www.youtube.com/embed/";
-        
-        async function fetchMovies() {
-            let response = await fetch(`${API_URL}/movie/popular?api_key=${TMDB_API_KEY}&language=es-ES`);
-            let data = await response.json();
+const API_KEY = "c71d55c790adcb0fa9ea6ebcbc9a61a7";
+const API_URL = "https://api.themoviedb.org/3";
+
+
+document.addEventListener("DOMContentLoaded", () => {
+    loadMovies();
+});
+
+// Cargar películas populares
+function loadMovies() {
+    fetch(`${API_URL}/movie/popular?api_key=${API_KEY}&language=es&page=1`)
+        .then(response => response.json())
+        .then(data => {
             displayMovies(data.results);
-        }
+            loadMovieDetails(data.results[0].id); // Cargar la primera película automáticamente
+        });
+}
 
-        function displayMovies(movies) {
-            const movieContainer = document.getElementById("movies");
-            movieContainer.innerHTML = "";
-            movies.forEach(movie => {
-                let movieElement = document.createElement("div");
-                movieElement.classList.add("movie-item");
-                movieElement.innerHTML = `
-                    <img src="${IMAGE_URL}${movie.poster_path}" alt="${movie.title}" onclick="loadMovie(${movie.id})">
-                `;
-                movieContainer.appendChild(movieElement);
-            });
-            loadMovie(movies[0].id);
-        }
+// Mostrar lista de películas
+function displayMovies(movies) {
+    const movieContainer = document.getElementById("movies");
+    movieContainer.innerHTML = "";
+    movies.forEach(movie => {
+        const div = document.createElement("div");
+        div.classList.add("movie");
+        div.innerHTML = `
+            <img src="https://image.tmdb.org/t/p/w300${movie.poster_path}" alt="${movie.title}">
+            <p>${movie.title}</p>
+        `;
+        div.onclick = () => loadMovieDetails(movie.id);
+        movieContainer.appendChild(div);
+    });
+}
 
-        async function loadMovie(movieId) {
-            let response = await fetch(`${API_URL}/movie/${movieId}?api_key=${TMDB_API_KEY}&language=es-ES&append_to_response=videos`);
-            let movie = await response.json();
+// Cargar detalles de una película
+function loadMovieDetails(movieId) {
+    fetch(`${API_URL}/movie/${movieId}?api_key=${API_KEY}&language=es`)
+        .then(response => response.json())
+        .then(movie => {
             document.getElementById("title").textContent = movie.title;
             document.getElementById("year").textContent = `Año: ${movie.release_date.split("-")[0]}`;
-            document.getElementById("genres-info").textContent = `Género: ${movie.genres.map(g => g.name).join(", ")}`;
-            document.getElementById("rating").textContent = `Calificación: ${movie.vote_average.toFixed(1)}/10`;
-            document.getElementById("synopsis").textContent = `Sinopsis: ${movie.overview}`;
+            document.getElementById("genres").textContent = `Géneros: ${movie.genres.map(g => g.name).join(", ")}`;
+            document.getElementById("rating").innerHTML = `⭐ ${movie.vote_average.toFixed(1)}`;
+            document.getElementById("overview").textContent = movie.overview || "Sin sinopsis disponible.";
+            
+            // Buscar tráiler
+            fetch(`${API_URL}/movie/${movieId}/videos?api_key=${API_KEY}`)
+                .then(response => response.json())
+                .then(data => {
+                    const trailer = data.results.find(video => video.type === "Trailer");
+                    document.getElementById("trailerFrame").src = trailer ? `https://www.youtube.com/embed/${trailer.key}` : "";
+                });
 
-            let trailer = movie.videos.results.find(video => video.type === "Trailer");
-            document.getElementById("trailer").src = trailer ? `${YOUTUBE_URL}${trailer.key}` : "";
-        }
-
-        async function fetchGenres() {
-            let response = await fetch(`${API_URL}/genre/movie/list?api_key=${TMDB_API_KEY}&language=es-ES`);
-            let data = await response.json();
-            const genreContainer = document.getElementById("genres");
-            data.genres.forEach(genre => {
-                let genreElement = document.createElement("span");
-                genreElement.textContent = genre.name;
-                genreElement.onclick = () => filterByGenre(genre.id);
-                genreContainer.appendChild(genreElement);
-            });
-        }
-
-        async function filterByGenre(genreId) {
-            let response = await fetch(`${API_URL}/discover/movie?api_key=${TMDB_API_KEY}&language=es-ES&with_genres=${genreId}`);
-            let data = await response.json();
-            displayMovies(data.results);
-        }
-
-        async function fetchYears() {
-            const yearContainer = document.getElementById("years");
-            let currentYear = new Date().getFullYear();
-            for (let i = 0; i < 10; i++) {
-                let yearElement = document.createElement("span");
-                yearElement.textContent = currentYear - i;
-                yearElement.onclick = () => filterByYear(currentYear - i);
-                yearContainer.appendChild(yearElement);
-            }
-        }
-
-        async function filterByYear(year) {
-            let response = await fetch(`${API_URL}/discover/movie?api_key=${TMDB_API_KEY}&language=es-ES&primary_release_year=${year}`);
-            let data = await response.json();
-            displayMovies(data.results);
-        }
-
-        async function searchMovies() {
-            let query = document.getElementById("search").value;
-            if (query.length > 2) {
-                let response = await fetch(`${API_URL}/search/movie?api_key=${TMDB_API_KEY}&language=es-ES&query=${query}`);
-                let data = await response.json();
-                displayMovies(data.results);
-            }
-        }
-
-        document.addEventListener("DOMContentLoaded", () => {
-            fetchMovies();
-            fetchGenres();
-            fetchYears();
+            // Buscar reparto principal
+            loadCast(movieId);
         });
+}
+
+// Buscar reparto principal
+function loadCast(movieId) {
+    fetch(`${API_URL}/movie/${movieId}/credits?api_key=${API_KEY}&language=es`)
+        .then(response => response.json())
+        .then(data => {
+            const castContainer = document.getElementById("cast");
+            castContainer.innerHTML = "";
+            
+            data.cast.slice(0, 5).forEach(actor => { // Solo los primeros 5 actores
+                const div = document.createElement("div");
+                div.classList.add("cast-member");
+                div.innerHTML = `
+                    <img src="${actor.profile_path ? "https://image.tmdb.org/t/p/w200" + actor.profile_path : "https://via.placeholder.com/80"}" alt="${actor.name}">
+                    <p>${actor.name}</p>
+                `;
+                castContainer.appendChild(div);
+            });
+        });
+}
+
+// Buscar películas
+function searchMovies() {
+    const query = document.getElementById("search").value;
+    if (query.length < 3) return;
+
+    fetch(`${API_URL}/search/movie?api_key=${API_KEY}&query=${query}&language=es`)
+        .then(response => response.json())
+        .then(data => {
+            displayMovies(data.results);
+            if (data.results.length > 0) loadMovieDetails(data.results[0].id);
+        });
+}
