@@ -6,20 +6,22 @@ document.addEventListener("DOMContentLoaded", () => {
     loadMovies();
 });
 
+let currentPage = 1;
+
 // Cargar películas populares
 function loadMovies() {
-    fetch(`${API_URL}/movie/popular?api_key=${API_KEY}&language=es&page=1`)
+    fetch(`${API_URL}/movie/popular?api_key=${API_KEY}&language=es&page=${currentPage}`)
         .then(response => response.json())
         .then(data => {
             displayMovies(data.results);
-            loadMovieDetails(data.results[0].id); // Cargar la primera película automáticamente
+            if (currentPage === 1) loadMovieDetails(data.results[0].id); // Cargar la primera película automáticamente
         });
 }
 
 // Mostrar lista de películas
 function displayMovies(movies) {
     const movieContainer = document.getElementById("movies");
-    movieContainer.innerHTML = "";
+    
     movies.forEach(movie => {
         const div = document.createElement("div");
         div.classList.add("movie");
@@ -64,7 +66,7 @@ function loadCast(movieId) {
             const castContainer = document.getElementById("cast");
             castContainer.innerHTML = "";
             
-            data.cast.slice(0, 5).forEach(actor => { // Solo los primeros 5 actores
+            data.cast.slice(0, 5).forEach(actor => {
                 const div = document.createElement("div");
                 div.classList.add("cast-member");
                 div.innerHTML = `
@@ -76,6 +78,12 @@ function loadCast(movieId) {
         });
 }
 
+// Mostrar más películas
+function loadMoreMovies() {
+    currentPage++;
+    loadMovies();
+}
+
 // Buscar películas
 function searchMovies() {
     const query = document.getElementById("search").value;
@@ -84,7 +92,9 @@ function searchMovies() {
     fetch(`${API_URL}/search/movie?api_key=${API_KEY}&query=${query}&language=es`)
         .then(response => response.json())
         .then(data => {
+            document.getElementById("movies").innerHTML = "";
             displayMovies(data.results);
             if (data.results.length > 0) loadMovieDetails(data.results[0].id);
         });
 }
+
