@@ -98,3 +98,35 @@ function searchMovies() {
         });
 }
 
+// Cambiar fondo del reproductor
+function updateBackground(imageUrl) {
+    document.getElementById('background-image').style.backgroundImage = `url(${imageUrl})`;
+}
+
+// Mostrar Loader en el reproductor
+document.getElementById('trailerFrame').addEventListener('load', function() {
+    document.getElementById('loader').style.display = 'none';
+});
+function showLoader() {
+    document.getElementById('loader').style.display = 'block';
+}
+
+// Filtros de Géneros y Años
+const genres = ["Animación", "Terror", "Acción", "Drama", "Comedia", "Aventura", "Fantasía", "Suspenso", "Ciencia Ficción", "Misterio"];
+const years = Array.from({ length: 10 }, (_, i) => 2025 - i);
+
+function renderFilters(list, containerId) {
+    const container = document.getElementById(containerId);
+    list.forEach(item => {
+        const span = document.createElement('span');
+        span.textContent = item;
+        span.onclick = () => filterMovies(item);
+        container.appendChild(span);
+    });
+}
+renderFilters(genres, 'genres-list');
+renderFilters(years, 'years-list');
+
+function filterMovies(filter) {
+    console.log("Filtrando por:", filter);
+}
